@@ -1,10 +1,14 @@
-import React from 'react';
-import ReactDOM from 'react-dom';
-import App from './App';
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import { Provider } from 'react-redux'
+import './index.css'
+import { JournalApp } from './JournalApp'
+import { store } from './store'
 
-ReactDOM.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-  document.getElementById('root')
-);
+ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
+
+    <Provider store={store}>
+        <JournalApp />
+    </Provider>
+
+)
