@@ -1,5 +1,10 @@
 'use strict';
 
+Object.defineProperty(exports, '__esModule', {
+  value: true
+});
+exports.default = exports.TestEnvironment = void 0;
+
 function _jsdom() {
   const data = require('jsdom');
 
@@ -40,53 +45,46 @@ function _jestUtil() {
   return data;
 }
 
-function _defineProperty(obj, key, value) {
-  if (key in obj) {
-    Object.defineProperty(obj, key, {
-      value: value,
-      enumerable: true,
-      configurable: true,
-      writable: true
-    });
-  } else {
-    obj[key] = value;
-  }
-  return obj;
-}
-
+/**
+ * Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
 class JSDOMEnvironment {
-  constructor(config, options) {
-    _defineProperty(this, 'dom', void 0);
+  dom;
+  fakeTimers;
+  fakeTimersModern;
+  global;
+  errorEventListener;
+  moduleMocker;
+  customExportConditions = ['browser'];
 
-    _defineProperty(this, 'fakeTimers', void 0);
-
-    _defineProperty(this, 'fakeTimersModern', void 0);
-
-    _defineProperty(this, 'global', void 0);
-
-    _defineProperty(this, 'errorEventListener', void 0);
-
-    _defineProperty(this, 'moduleMocker', void 0);
-
+  constructor(config, context) {
+    const {projectConfig} = config;
+    const virtualConsole = new (_jsdom().VirtualConsole)();
+    virtualConsole.sendTo(context.console, {
+      omitJSDOMErrors: true
+    });
+    virtualConsole.on('jsdomError', error => {
+      context.console.error(error);
+    });
     this.dom = new (_jsdom().JSDOM)(
-      typeof config.testEnvironmentOptions.html === 'string'
-        ? config.testEnvironmentOptions.html
+      typeof projectConfig.testEnvironmentOptions.html === 'string'
+        ? projectConfig.testEnvironmentOptions.html
         : '<!DOCTYPE html>',
       {
         pretendToBeVisual: true,
         resources:
-          typeof config.testEnvironmentOptions.userAgent === 'string'
+          typeof projectConfig.testEnvironmentOptions.userAgent === 'string'
             ? new (_jsdom().ResourceLoader)({
-                userAgent: config.testEnvironmentOptions.userAgent
+                userAgent: projectConfig.testEnvironmentOptions.userAgent
               })
             : undefined,
         runScripts: 'dangerously',
-        url: config.testURL,
-        virtualConsole: new (_jsdom().VirtualConsole)().sendTo(
-          (options === null || options === void 0 ? void 0 : options.console) ||
-            console
-        ),
-        ...config.testEnvironmentOptions
+        url: 'http://localhost/',
+        virtualConsole,
+        ...projectConfig.testEnvironmentOptions
       }
     );
     const global = (this.global = this.dom.window.document.defaultView);
@@ -99,7 +97,7 @@ class JSDOMEnvironment {
     // to see more than that when a test fails.
 
     this.global.Error.stackTraceLimit = 100;
-    (0, _jestUtil().installCommonGlobals)(global, config.globals); // TODO: remove this ASAP, but it currently causes tests to run really slow
+    (0, _jestUtil().installCommonGlobals)(global, projectConfig.globals); // TODO: remove this ASAP, but it currently causes tests to run really slow
 
     global.Buffer = Buffer; // Report uncaught errors.
 
@@ -132,22 +130,36 @@ class JSDOMEnvironment {
       return originalRemoveListener.apply(this, args);
     };
 
+    if ('customExportConditions' in projectConfig.testEnvironmentOptions) {
+      const {customExportConditions} = projectConfig.testEnvironmentOptions;
+
+      if (
+        Array.isArray(customExportConditions) &&
+        customExportConditions.every(item => typeof item === 'string')
+      ) {
+        this.customExportConditions = customExportConditions;
+      } else {
+        throw new Error(
+          'Custom export conditions specified but they are not an array of strings'
+        );
+      }
+    }
+
     this.moduleMocker = new (_jestMock().ModuleMocker)(global);
-    const timerConfig = {
-      idToRef: id => id,
-      refToId: ref => ref
-    };
     this.fakeTimers = new (_fakeTimers().LegacyFakeTimers)({
-      config,
+      config: projectConfig,
       global: global,
       moduleMocker: this.moduleMocker,
-      timerConfig
+      timerConfig: {
+        idToRef: id => id,
+        refToId: ref => ref
+      }
     });
     this.fakeTimersModern = new (_fakeTimers().ModernFakeTimers)({
-      config,
+      config: projectConfig,
       global: global
     });
-  }
+  } // eslint-disable-next-line @typescript-eslint/no-empty-function
 
   async setup() {}
 
@@ -175,12 +187,16 @@ class JSDOMEnvironment {
       });
     }
 
-    this.errorEventListener = null; // @ts-expect-error
+    this.errorEventListener = null; // @ts-expect-error: this.global not allowed to be `null`
 
     this.global = null;
     this.dom = null;
     this.fakeTimers = null;
     this.fakeTimersModern = null;
+  }
+
+  exportConditions() {
+    return this.customExportConditions;
   }
 
   getVmContext() {
@@ -192,4 +208,6 @@ class JSDOMEnvironment {
   }
 }
 
-module.exports = JSDOMEnvironment;
+exports.default = JSDOMEnvironment;
+const TestEnvironment = JSDOMEnvironment;
+exports.TestEnvironment = TestEnvironment;
