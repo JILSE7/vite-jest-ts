@@ -5,7 +5,7 @@ import { RootState } from '../store';
 import { FirebaseDB } from '../../firebase/config';
 import { addNewEntyNote, deleteNoteById, isLoadingJournal, setActiveNote, setNotes, setPhotosToActiveNote, setSaving, TNote, updateNote } from "./journalSlice";
 import { journalHelper, fileUpload } from "../../helpers";
-import { CloudinaryResponse } from "../../interface/Cloudinary";
+import { CloudinaryResponse } from '../../interface/Cloudinary';
 
 export const startNewNote = ():ThunkAction<void, RootState, unknown, AnyAction> => {
     return async(dispatch, getState) => {
@@ -94,9 +94,9 @@ export const startUploadingFiles = (files: FileList):ThunkAction<void, RootState
         arrFilesPromise.push(fileUpload(file));
       }
 
-      const photosURL = await Promise.all<CloudinaryResponse>(arrFilesPromise);
+      const photosURL = await Promise.all(arrFilesPromise);
       const urls = photosURL.map(photo => {
-        return photo.url
+        return photo!.url
       });
 
       dispatch(setPhotosToActiveNote(urls));

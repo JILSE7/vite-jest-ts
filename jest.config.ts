@@ -1,3 +1,4 @@
+const esModules = ['firebase/auth', 'firebase', 'firebase-auth','@firebase/auth', '@firebase', '@firebase-auth'].join('|');
 module.exports = {
     testEnvironment: 'jest-environment-jsdom',
     setupFiles: ['./jest.setup.ts'],
@@ -11,6 +12,10 @@ module.exports = {
       "<rootDir>/jest.setup.ts"
     ],
     "transform": {
-      "^.+\\.(ts|tsx)$": "ts-jest"
+      "^.+\\.(ts|tsx)$": "ts-jest",
+      "^.+\\.(js|jsx)$": "babel-jest"
     },
+    transformIgnorePatterns: [`/node_modules/(?!${esModules})`],
+    
+    
 }
